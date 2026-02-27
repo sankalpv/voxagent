@@ -374,46 +374,59 @@ class VoiceAgent:
 
     async def _speak(self, text: str) -> None:
         """
-        Synthesize text to speech and send to the audio output queue.
-        Uses sentence-level streaming for low latency.
+        Speak text to the caller using Telnyx's speak command.
+        This uses Telnyx's built-in TTS which plays directly to the caller.
         """
         if not text.strip():
             return
 
         self.is_speaking = True
-        await set_speaking(self.call_id, True)
+        log.warning("speak call_id=%s text=%s", self.call_id, text[:100])
 
         try:
-            # For short responses (1 sentence), synthesize directly
-            sentences = text.split(". ")
-            if len(sentences) <= 1:
-                audio = await synthesize(text, self.session.voice_name)
-                await self.audio_out_queue.put(audio)
-            else:
-                # For multi-sentence responses, stream sentence by sentence
-                text_queue: asyncio.Queue[str | None] = asyncio.Queue()
+            # Use Telnyx speak command instead of WebSocket audio
+            import uuid
+            from backend.app.db.database import AsyncSessionLocal
+            from backend.app.db.models import Call
+            from sqlalchemy import select
+            import httpx
+            from backend.app.core.config import settings
 
-                # Start TTS streaming in background
-                tts_task = asyncio.create_task(
-                    synthesize_streaming(text_queue, self.audio_out_queue, self.session.voice_name)
+            # Get Telnyx call control ID
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Call.telnyx_call_control_id).where(
+                        Call.id == uuid.UUID(self.call_id)
+                    )
                 )
+                control_id = result.scalar_one_or_none()
 
-                # Feed sentences
-                for sentence in sentences:
-                    s = sentence.strip()
-                    if s:
-                        if not s.endswith((".", "!", "?")):
-                            s += "."
-                        await text_queue.put(s + " ")
-
-                await text_queue.put(None)  # Signal end
-                await tts_task
+            if control_id:
+                # Use Telnyx speak command
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(
+                        f"https://api.telnyx.com/v2/calls/{control_id}/actions/speak",
+                        headers={
+                            "Authorization": f"Bearer {settings.telnyx_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "payload": text,
+                            "voice": "female",
+                            "language": "en-US",
+                        },
+                    )
+                    log.warning("speak_result call_id=%s status=%d", self.call_id, resp.status_code)
+                    # Wait for speech to finish (rough estimate: 150ms per word)
+                    word_count = len(text.split())
+                    await asyncio.sleep(max(1.0, word_count * 0.15))
+            else:
+                log.warning("speak_no_control_id call_id=%s", self.call_id)
 
         except Exception as exc:
             log.warning("speak_error call_id=%s error=%s", self.call_id, str(exc))
         finally:
             self.is_speaking = False
-            await set_speaking(self.call_id, False)
 
     # ─── STT Audio Feeding ────────────────────────────────────────────────────
 
