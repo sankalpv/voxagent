@@ -160,7 +160,7 @@ async def start_streaming(call_control_id: str, call_id: str) -> bool:
     stream_url = f"{settings.websocket_base_url}/ws/calls/{call_id}"
     return await _call_command(call_control_id, "streaming_start", {
         "stream_url": stream_url,
-        "stream_track": "both_tracks",  # hear both caller and our audio
+        "stream_track": "inbound_track",
         "enable_dialogflow": False,
     })
 
