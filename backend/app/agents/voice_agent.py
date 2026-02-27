@@ -142,17 +142,17 @@ class VoiceAgent:
                         pass
 
         except asyncio.CancelledError:
-            log.info("voice_agent_cancelled", call_id=self.call_id)
+            log.warning("voice_agent_cancelled call_id=%s", self.call_id)
         except Exception as exc:
-            log.exception("voice_agent_error", call_id=self.call_id, error=str(exc))
+            log.warning("voice_agent_run_error call_id=%s error=%s", self.call_id, str(exc))
+            import traceback
+            log.warning("traceback: %s", traceback.format_exc())
         finally:
-            await update_session(self.call_id, status="ended")
-            log.info(
-                "voice_agent_ended",
-                call_id=self.call_id,
-                turns=self.turn_count,
-                duration_s=round(time.time() - self.call_start, 1),
-            )
+            try:
+                await update_session(self.call_id, status="ended")
+            except Exception:
+                pass
+            log.warning("voice_agent_ended call_id=%s turns=%d duration=%.1fs", self.call_id, self.turn_count, time.time() - self.call_start)
 
     # ─── Build session from DB ────────────────────────────────────────────────
 

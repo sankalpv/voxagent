@@ -112,14 +112,18 @@ def _complete_sync(
     tools: list | None,
 ) -> tuple[str, list[dict] | None]:
     """Blocking Gemini completion — called from thread pool."""
-    chat = model.start_chat(history=history)
+    # Create model with system instruction
+    model_with_system = genai.GenerativeModel(
+        model.model_name if hasattr(model, 'model_name') else "gemini-2.0-flash",
+        system_instruction=system_prompt,
+    )
+    chat = model_with_system.start_chat(history=history)
 
     kwargs: dict[str, Any] = {
         "generation_config": genai.types.GenerationConfig(
             temperature=0.75,
-            max_output_tokens=300,   # Voice responses should be concise
+            max_output_tokens=300,
         ),
-        "system_instruction": system_prompt,
     }
     if tools:
         kwargs["tools"] = tools
