@@ -374,18 +374,18 @@ class VoiceAgent:
 
     async def _speak(self, text: str) -> None:
         """
-        Speak text to the caller using Telnyx's speak command.
-        This uses Telnyx's built-in TTS which plays directly to the caller.
+        Speak text to the caller. Tries Gemini Native Audio first (natural voice),
+        falls back to Telnyx speak command if native audio fails.
         """
         if not text.strip():
             return
 
         self.is_speaking = True
+        self._stt_paused = True  # Pause STT during speech
         log.warning("speak call_id=%s text=%s", self.call_id, text[:100])
 
         try:
-            # Use Telnyx speak command instead of WebSocket audio
-            import uuid
+            import uuid, base64, json
             from backend.app.db.database import AsyncSessionLocal
             from backend.app.db.models import Call
             from sqlalchemy import select
@@ -401,11 +401,35 @@ class VoiceAgent:
                 )
                 control_id = result.scalar_one_or_none()
 
-            if control_id:
-                # Pause STT to prevent echo (agent hearing itself)
-                self._stt_paused = True
+            if not control_id:
+                log.warning("speak_no_control_id call_id=%s", self.call_id)
+                return
 
-                # Use Telnyx speak command
+            # Try Gemini Native Audio first
+            audio_sent = False
+            try:
+                from backend.app.services.llm.gemini_audio import generate_audio_response, pcm_to_mulaw_8k
+                _, audio_data = await generate_audio_response(
+                    system_prompt="Convert this text to natural speech: " + text,
+                    conversation_history=[],
+                    user_message=text,
+                )
+                if audio_data:
+                    # Convert to 8kHz mulaw for Telnyx
+                    mulaw_audio = pcm_to_mulaw_8k(audio_data)
+                    # Send through WebSocket
+                    payload = base64.b64encode(mulaw_audio).decode()
+                    await self.audio_out_queue.put(mulaw_audio)
+                    audio_sent = True
+                    log.warning("native_audio_sent call_id=%s bytes=%d", self.call_id, len(mulaw_audio))
+                    # Wait for playback
+                    duration_secs = len(mulaw_audio) / 8000  # 8kHz sample rate
+                    await asyncio.sleep(duration_secs + 0.5)
+            except Exception as exc:
+                log.warning("native_audio_failed call_id=%s error=%s", self.call_id, str(exc))
+
+            # Fallback to Telnyx speak
+            if not audio_sent:
                 async with httpx.AsyncClient(timeout=15.0) as client:
                     resp = await client.post(
                         f"https://api.telnyx.com/v2/calls/{control_id}/actions/speak",
@@ -419,19 +443,14 @@ class VoiceAgent:
                             "language": "en-US",
                         },
                     )
-                    log.warning("speak_result call_id=%s status=%d", self.call_id, resp.status_code)
-                    # Wait for speech to finish (rough estimate: 180ms per word + buffer)
+                    log.warning("speak_telnyx_fallback call_id=%s status=%d", self.call_id, resp.status_code)
                     word_count = len(text.split())
                     await asyncio.sleep(max(2.0, word_count * 0.18 + 1.0))
-
-                # Resume STT after speaking
-                self._stt_paused = False
-            else:
-                log.warning("speak_no_control_id call_id=%s", self.call_id)
 
         except Exception as exc:
             log.warning("speak_error call_id=%s error=%s", self.call_id, str(exc))
         finally:
+            self._stt_paused = False  # Resume STT
             self.is_speaking = False
 
     # ─── STT Audio Feeding ────────────────────────────────────────────────────
