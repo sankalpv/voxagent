@@ -110,12 +110,6 @@ class StreamingSTT:
                         transcript = result.alternatives[0].transcript.strip()
                         if transcript:
                             await self._transcript_queue.put(transcript)
-                    # Voice activity: speech ended without a full utterance (silence)
-                    if result.HasField("voice_activity_event"):
-                        event = result.voice_activity_event
-                        if event == cloud_speech.VoiceActivityEvent.SPEECH_ACTIVITY_END:
-                            # Flush partial transcript if any
-                            pass
         except Exception as exc:
             log.exception("STT stream error: %s", exc)
         finally:
