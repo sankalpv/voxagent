@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
     # Load Google Cloud credentials from base64 env var (for Railway/cloud deploy)
     import os, base64
     gcp_creds_b64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64", "")
-    if gcp_creds_b64 and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+    if gcp_creds_b64:
         creds_path = "/tmp/gcp-credentials.json"
         with open(creds_path, "wb") as f:
             f.write(base64.b64decode(gcp_creds_b64))
