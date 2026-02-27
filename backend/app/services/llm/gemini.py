@@ -34,8 +34,8 @@ def _get_model(name: str) -> genai.GenerativeModel:
 
 
 TIER_MODELS = {
-    "fast":     "gemini-2.0-flash",          # primary for voice turns
-    "standard": "gemini-2.0-flash",
+    "fast":     "gemini-2.0-flash-001",      # primary for voice turns
+    "standard": "gemini-2.0-flash-001",
     "complex":  "gemini-1.5-pro",
 }
 
@@ -114,7 +114,7 @@ def _complete_sync(
     """Blocking Gemini completion — called from thread pool."""
     # Create model with system instruction
     model_with_system = genai.GenerativeModel(
-        model.model_name if hasattr(model, 'model_name') else "gemini-2.0-flash",
+        model.model_name if hasattr(model, 'model_name') else "gemini-2.0-flash-001",
         system_instruction=system_prompt,
     )
     chat = model_with_system.start_chat(history=history)
