@@ -45,13 +45,34 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     log.info("starting", env=settings.app_env, port=settings.app_port)
 
-    # Ensure DB tables exist
+    # Ensure DB tables exist + seed data
     try:
-        from backend.app.db.database import create_tables
+        from backend.app.db.database import create_tables, AsyncSessionLocal
         await create_tables()
         log.info("database_tables_ensured")
+
+        # Seed default tenant if not exists
+        from backend.app.db.models import Tenant
+        from sqlalchemy import select, text
+        import uuid
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Tenant).where(Tenant.api_key == "dev-api-key-change-in-production")
+            )
+            if not result.scalar_one_or_none():
+                dev_tenant = Tenant(
+                    id=uuid.UUID("00000000-0000-0000-0000-000000000001"),
+                    name="Dev Tenant",
+                    api_key="dev-api-key-change-in-production",
+                    tier="standard",
+                )
+                db.add(dev_tenant)
+                await db.commit()
+                log.info("seed_tenant_created")
+            else:
+                log.info("seed_tenant_exists")
     except Exception as exc:
-        log.warning("database_table_creation_skipped", error=str(exc))
+        log.warning("database_setup_error", error=str(exc))
 
     # Warm up Redis connection (optional — app works without it, just no session memory)
     try:
