@@ -415,7 +415,7 @@ class VoiceAgent:
                         },
                         json={
                             "payload": text,
-                            "voice": "Polly.Ruth-Neural",
+                            "voice": "google.en-US-Neural2-F",
                             "language": "en-US",
                         },
                     )
