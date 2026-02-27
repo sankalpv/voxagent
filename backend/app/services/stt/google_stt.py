@@ -28,14 +28,12 @@ _RECOGNITION_CONFIG = cloud_speech.RecognitionConfig(
     model=settings.stt_model,
     features=cloud_speech.RecognitionFeatures(
         enable_automatic_punctuation=True,
-        enable_voice_activity_events=True,
     ),
 )
 
 _STREAMING_CONFIG = cloud_speech.StreamingRecognitionConfig(
     config=_RECOGNITION_CONFIG,
     streaming_features=cloud_speech.StreamingRecognitionFeatures(
-        enable_voice_activity_events=True,
         interim_results=True,
     ),
 )
