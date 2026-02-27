@@ -402,6 +402,9 @@ class VoiceAgent:
                 control_id = result.scalar_one_or_none()
 
             if control_id:
+                # Pause STT to prevent echo (agent hearing itself)
+                self._stt_paused = True
+
                 # Use Telnyx speak command
                 async with httpx.AsyncClient(timeout=15.0) as client:
                     resp = await client.post(
@@ -417,9 +420,12 @@ class VoiceAgent:
                         },
                     )
                     log.warning("speak_result call_id=%s status=%d", self.call_id, resp.status_code)
-                    # Wait for speech to finish (rough estimate: 150ms per word)
+                    # Wait for speech to finish (rough estimate: 180ms per word + buffer)
                     word_count = len(text.split())
-                    await asyncio.sleep(max(1.0, word_count * 0.15))
+                    await asyncio.sleep(max(2.0, word_count * 0.18 + 1.0))
+
+                # Resume STT after speaking
+                self._stt_paused = False
             else:
                 log.warning("speak_no_control_id call_id=%s", self.call_id)
 
@@ -431,14 +437,17 @@ class VoiceAgent:
     # ─── STT Audio Feeding ────────────────────────────────────────────────────
 
     async def _feed_stt(self, stt: StreamingSTT) -> None:
-        """Continuously feed audio from the WebSocket queue to STT."""
+        """Continuously feed audio from the WebSocket queue to STT. Pauses during agent speech."""
+        self._stt_paused = False
         try:
             while True:
                 audio_bytes = await self.audio_in_queue.get()
                 if audio_bytes is None:
                     await stt.stop()
                     break
-                stt.feed_audio(audio_bytes)
+                # Skip audio while agent is speaking (prevents echo feedback loop)
+                if not getattr(self, '_stt_paused', False):
+                    stt.feed_audio(audio_bytes)
         except asyncio.CancelledError:
             await stt.stop()
 
