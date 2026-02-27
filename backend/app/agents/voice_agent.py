@@ -412,7 +412,7 @@ class VoiceAgent:
                         },
                         json={
                             "payload": text,
-                            "voice": "female",
+                            "voice": "Polly.Joanna",
                             "language": "en-US",
                         },
                     )
