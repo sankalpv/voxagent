@@ -82,17 +82,29 @@ class VoiceAgent:
 
     async def run(self) -> None:
         """Main agent loop."""
+        log.warning("voice_agent_run_start call_id=%s", self.call_id)
+
         # Load session from Redis
-        self.session = await get_session(self.call_id)
+        try:
+            self.session = await get_session(self.call_id)
+        except Exception as exc:
+            log.warning("voice_agent_redis_error call_id=%s error=%s", self.call_id, str(exc))
+
+        # If no Redis session, build one from the database
         if not self.session:
-            log.error("voice_agent_no_session", call_id=self.call_id)
+            log.warning("voice_agent_no_redis_session call_id=%s - loading from DB", self.call_id)
+            try:
+                self.session = await self._build_session_from_db()
+            except Exception as exc:
+                log.warning("voice_agent_db_session_error call_id=%s error=%s", self.call_id, str(exc))
+                import traceback
+                log.warning("traceback: %s", traceback.format_exc())
+
+        if not self.session:
+            log.warning("voice_agent_no_session call_id=%s - cannot proceed", self.call_id)
             return
 
-        log.info(
-            "voice_agent_started",
-            call_id=self.call_id,
-            agent=self.session.agent_config_id,
-        )
+        log.warning("voice_agent_started call_id=%s agent=%s", self.call_id, self.session.agent_config_id)
 
         try:
             # Step 1: Deliver opening greeting
@@ -141,6 +153,56 @@ class VoiceAgent:
                 turns=self.turn_count,
                 duration_s=round(time.time() - self.call_start, 1),
             )
+
+    # ─── Build session from DB ────────────────────────────────────────────────
+
+    async def _build_session_from_db(self) -> CallSession | None:
+        """Build a CallSession from the database when Redis doesn't have one."""
+        import uuid
+        from backend.app.db.database import AsyncSessionLocal
+        from backend.app.db.models import Call, AgentConfig
+        from sqlalchemy import select
+        from backend.app.services.llm.gemini import build_system_prompt
+
+        async with AsyncSessionLocal() as db:
+            # Get the call record
+            result = await db.execute(
+                select(Call).where(Call.id == uuid.UUID(self.call_id))
+            )
+            call = result.scalar_one_or_none()
+            if not call or not call.agent_id:
+                log.warning("_build_session: no call found for %s", self.call_id)
+                return None
+
+            # Get the agent config
+            result = await db.execute(
+                select(AgentConfig).where(AgentConfig.id == call.agent_id)
+            )
+            agent = result.scalar_one_or_none()
+            if not agent:
+                log.warning("_build_session: no agent found for call %s", self.call_id)
+                return None
+
+            system_prompt = build_system_prompt(
+                agent_name=agent.name,
+                company_name=agent.persona.split(",")[0] if agent.persona else agent.name,
+                persona=agent.persona,
+                primary_goal=agent.primary_goal,
+                constraints=agent.constraints,
+                escalation_policy=agent.escalation_policy,
+            )
+
+            session = CallSession(
+                call_id=self.call_id,
+                tenant_id=str(call.tenant_id),
+                agent_config_id=str(agent.id),
+                contact_phone=call.to_number,
+                system_prompt=system_prompt,
+                voice_name=agent.voice_name,
+                enabled_tools=agent.enabled_tools or [],
+            )
+            log.warning("_build_session: built from DB for call %s agent %s", self.call_id, agent.name)
+            return session
 
     # ─── Greeting ─────────────────────────────────────────────────────────────
 
