@@ -45,17 +45,22 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     log.info("starting", env=settings.app_env, port=settings.app_port)
 
-    # Ensure DB tables exist (in dev; production uses migrations)
-    from backend.app.db.database import create_tables
-    if settings.app_env == "development":
+    # Ensure DB tables exist
+    try:
+        from backend.app.db.database import create_tables
         await create_tables()
         log.info("database_tables_ensured")
+    except Exception as exc:
+        log.warning("database_table_creation_skipped", error=str(exc))
 
-    # Warm up Redis connection
-    from backend.app.services.memory.short_term import get_redis
-    redis = await get_redis()
-    await redis.ping()
-    log.info("redis_connected", url=settings.redis_url)
+    # Warm up Redis connection (optional — app works without it, just no session memory)
+    try:
+        from backend.app.services.memory.short_term import get_redis
+        redis = await get_redis()
+        await redis.ping()
+        log.info("redis_connected", url=settings.redis_url)
+    except Exception as exc:
+        log.warning("redis_not_available", error=str(exc), url=settings.redis_url)
 
     log.info("startup_complete", public_url=settings.public_base_url)
 
@@ -85,15 +90,15 @@ app = FastAPI(
     description="Multi-tenant autonomous AI calling platform — GenAI native, cheapest in market.",
     version="0.1.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.app_env == "development" else None,
-    redoc_url="/redoc" if settings.app_env == "development" else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.app_env == "development" else [],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
