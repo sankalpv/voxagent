@@ -410,7 +410,7 @@ class VoiceAgent:
                 await tts_task
 
         except Exception as exc:
-            log.exception("speak_error", call_id=self.call_id, error=str(exc))
+            log.warning("speak_error call_id=%s error=%s", self.call_id, str(exc))
         finally:
             self.is_speaking = False
             await set_speaking(self.call_id, False)
