@@ -54,7 +54,7 @@ def _generate_sync(
         ))
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash-preview-native-audio-dialog",
+            model="gemini-2.5-flash-native-audio-latest",
             contents=contents,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
