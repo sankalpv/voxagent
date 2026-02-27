@@ -22,17 +22,20 @@ async def check_dnc(tenant_id: UUID, phone_number: str, db: AsyncSession) -> boo
     Checks both the dnc_numbers table and the contact's is_dnc flag.
     Returns True if the number should NOT be called.
     """
-    # Check dedicated DNC table
-    from sqlalchemy import text
-    result = await db.execute(
-        text(
-            "SELECT 1 FROM dnc_numbers WHERE tenant_id = :tid AND phone_number = :phone LIMIT 1"
-        ),
-        {"tid": str(tenant_id), "phone": phone_number},
-    )
-    if result.scalar():
-        log.info("dnc_blocked", tenant_id=str(tenant_id), phone=phone_number, source="dnc_table")
-        return True
+    # Check dedicated DNC table (may not exist yet on fresh deploys)
+    try:
+        from sqlalchemy import text
+        result = await db.execute(
+            text(
+                "SELECT 1 FROM dnc_numbers WHERE tenant_id = :tid AND phone_number = :phone LIMIT 1"
+            ),
+            {"tid": str(tenant_id), "phone": phone_number},
+        )
+        if result.scalar():
+            log.info("dnc_blocked", tenant_id=str(tenant_id), phone=phone_number, source="dnc_table")
+            return True
+    except Exception:
+        pass  # Table may not exist yet
 
     # Check contact's is_dnc flag
     result = await db.execute(
