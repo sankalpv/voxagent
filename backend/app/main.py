@@ -45,6 +45,16 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     log.info("starting", env=settings.app_env, port=settings.app_port)
 
+    # Load Google Cloud credentials from base64 env var (for Railway/cloud deploy)
+    import os, base64
+    gcp_creds_b64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64", "")
+    if gcp_creds_b64 and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        creds_path = "/tmp/gcp-credentials.json"
+        with open(creds_path, "wb") as f:
+            f.write(base64.b64decode(gcp_creds_b64))
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = creds_path
+        log.info("gcp_credentials_loaded", path=creds_path)
+
     # Ensure DB tables exist + seed data
     try:
         from backend.app.db.database import create_tables, AsyncSessionLocal
