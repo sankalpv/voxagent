@@ -1,0 +1,37 @@
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+
+# Google AI / GenAI
+google-generativeai>=0.8.0
+google-cloud-speech>=2.27.0
+google-cloud-texttospeech>=2.17.0
+google-cloud-storage>=2.17.0
+
+# Telephony
+telnyx>=2.1.0
+httpx>=0.27.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.35
+asyncpg>=0.29.0
+alembic>=1.13.0
+pgvector>=0.3.2
+
+# Cache / session
+redis[asyncio]>=5.0.0
+
+# Settings & config
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.0
+
+# Audio processing
+numpy>=1.26.0
+
+# Async utilities
+anyio>=4.4.0
+
+# Logging & observability
+structlog>=24.1.0
