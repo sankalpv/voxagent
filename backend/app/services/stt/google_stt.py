@@ -106,9 +106,10 @@ class StreamingSTT:
             generator = _audio_request_generator(self._audio_queue, project)
             async for response in await client.streaming_recognize(requests=generator):
                 for result in response.results:
-                    if result.is_final:
+                    if result.is_final and result.alternatives:
                         transcript = result.alternatives[0].transcript.strip()
-                        if transcript:
+                        # Only pass meaningful transcripts (filter noise)
+                        if transcript and len(transcript) > 2:
                             await self._transcript_queue.put(transcript)
         except Exception as exc:
             log.exception("STT stream error: %s", exc)
