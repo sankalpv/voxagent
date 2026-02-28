@@ -38,9 +38,15 @@ async def send_email(to_email: str, subject: str, text_content: str, html_conten
 
         try:
             # Connect to SMTP server
-            server = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
+            if settings.smtp_port == 465:
+                # Port 465 requires implicit SSL from the start
+                server = smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port)
+            else:
+                # Other ports (587, 25) use explicit TLS
+                server = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
+                server.starttls()
+                
             server.set_debuglevel(0)
-            server.starttls()  # Secure the connection
             server.login(settings.smtp_username, settings.smtp_password)
             server.send_message(msg)
             server.quit()
