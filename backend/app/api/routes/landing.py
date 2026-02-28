@@ -16,278 +16,584 @@ async def landing():
 LANDING_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VoxAgent — AI Agents That Call For You</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--cyan:#00d4ff;--green:#00ff88;--purple:#7b61ff;--pink:#ff6b9d;--dark:#050510;--card:#0a0a1a;--border:#1a1a3a;--text:#b0b0c0;--white:#f0f0ff}
-body{font-family:'Inter',sans-serif;background:var(--dark);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-a{color:var(--cyan);text-decoration:none}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxAgent — Enterprise AI Voice Assistants</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19; /* Deep premium blue-black */
+            --surface-color: #131b2f;
+            --surface-color-hover: #1e2945;
+            --border-color: #2a344d;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-primary: #3b82f6; /* Trustworthy blue */
+            --accent-primary-hover: #2563eb;
+            --accent-teal: #10b981;
+            --nav-bg: rgba(11, 15, 25, 0.85);
+        }
 
-/* ═══ ANIMATED BACKGROUND ═══ */
-.bg-glow{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.bg-glow .orb{position:absolute;border-radius:50%;filter:blur(120px);opacity:0.12;animation:float 20s ease-in-out infinite}
-.bg-glow .orb:nth-child(1){width:600px;height:600px;background:var(--cyan);top:-200px;left:-100px;animation-delay:0s}
-.bg-glow .orb:nth-child(2){width:500px;height:500px;background:var(--purple);top:30%;right:-150px;animation-delay:-7s}
-.bg-glow .orb:nth-child(3){width:400px;height:400px;background:var(--pink);bottom:-100px;left:30%;animation-delay:-14s}
-@keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-40px) scale(1.05)}66%{transform:translate(-20px,30px) scale(0.95)}}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
 
-/* ═══ NAV ═══ */
-nav{position:fixed;top:0;width:100%;z-index:100;padding:16px 40px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(5,5,16,0.7);border-bottom:1px solid rgba(255,255,255,0.05);transition:all 0.3s}
-.logo{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-0.5px}
-.logo span{background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.nav-links{display:flex;gap:32px;align-items:center}
-.nav-links a{color:var(--text);font-size:14px;font-weight:500;transition:color 0.2s}
-.nav-links a:hover{color:var(--white)}
-.nav-cta{background:var(--cyan);color:#000;padding:8px 20px;border-radius:8px;font-weight:600;font-size:14px;transition:all 0.2s}
-.nav-cta:hover{background:#00e8ff;transform:translateY(-1px);box-shadow:0 4px 15px rgba(0,212,255,0.3)}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
 
-/* ═══ HERO ═══ */
-.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:120px 20px 80px}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);padding:6px 18px;border-radius:100px;font-size:13px;color:var(--cyan);margin-bottom:30px;animation:fadeUp 0.8s ease-out}
-.hero-badge .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.hero h1{font-size:clamp(48px,7vw,84px);font-weight:900;color:var(--white);line-height:1.05;letter-spacing:-2px;max-width:900px;margin-bottom:24px;animation:fadeUp 0.8s ease-out 0.1s both}
-.hero h1 .gradient{background:linear-gradient(135deg,var(--cyan) 0%,var(--purple) 50%,var(--pink) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-size:200% 200%;animation:gradientShift 5s ease infinite}
-@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.hero .sub{font-size:clamp(16px,2vw,20px);color:var(--text);max-width:600px;line-height:1.6;margin-bottom:40px;animation:fadeUp 0.8s ease-out 0.2s both}
-.hero-buttons{display:flex;gap:16px;animation:fadeUp 0.8s ease-out 0.3s both}
-.btn-primary{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000;padding:14px 36px;border-radius:12px;font-weight:700;font-size:16px;border:none;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 20px rgba(0,212,255,0.25)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,212,255,0.4)}
-.btn-secondary{background:transparent;color:var(--white);padding:14px 36px;border-radius:12px;font-weight:600;font-size:16px;border:1px solid var(--border);cursor:pointer;transition:all 0.3s}
-.btn-secondary:hover{border-color:var(--cyan);background:rgba(0,212,255,0.05)}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
 
-/* ═══ STATS BAR ═══ */
-.stats-bar{position:relative;z-index:1;display:flex;justify-content:center;gap:60px;padding:40px 20px;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(10,10,26,0.5);backdrop-filter:blur(10px)}
-.stat{text-align:center}
-.stat .number{font-size:36px;font-weight:800;color:var(--white);letter-spacing:-1px}
-.stat .number span{color:var(--cyan)}
-.stat .label{font-size:13px;color:var(--text);margin-top:4px}
+        /* ─── TYPOGRAPHY ─── */
+        h1, h2, h3, h4 {
+            color: var(--text-primary);
+            line-height: 1.2;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
 
-/* ═══ SECTIONS ═══ */
-section{position:relative;z-index:1;padding:100px 20px}
-.section-inner{max-width:1100px;margin:0 auto}
-.section-label{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:12px}
-.section-title{font-size:clamp(32px,4vw,48px);font-weight:800;color:var(--white);letter-spacing:-1px;line-height:1.15;margin-bottom:16px}
-.section-desc{font-size:17px;color:var(--text);max-width:600px;line-height:1.7}
+        p {
+            color: var(--text-secondary);
+        }
 
-/* ═══ HOW IT WORKS ═══ */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px}
-.step{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 28px;transition:all 0.4s;position:relative;overflow:hidden}
-.step::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cyan),var(--purple));opacity:0;transition:opacity 0.3s}
-.step:hover{border-color:rgba(0,212,255,0.3);transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.3)}
-.step:hover::before{opacity:1}
-.step-num{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(123,97,255,0.15));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:var(--cyan);margin-bottom:20px}
-.step h3{font-size:20px;font-weight:700;color:var(--white);margin-bottom:10px}
-.step p{font-size:14px;color:var(--text);line-height:1.6}
-.step .tag{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(0,255,136,0.1);color:var(--green)}
+        /* ─── UTILS ─── */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
 
-/* ═══ INDUSTRIES ═══ */
-.industries{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:50px}
-.industry{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 16px;text-align:center;transition:all 0.3s;cursor:pointer}
-.industry:hover{border-color:var(--cyan);transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,0.3)}
-.industry .icon{font-size:40px;margin-bottom:12px}
-.industry h4{font-size:14px;font-weight:600;color:var(--white);margin-bottom:4px}
-.industry p{font-size:11px;color:var(--text)}
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
 
-/* ═══ COMPARISON ═══ */
-.comparison{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:50px}
-.comp-card{border-radius:20px;padding:40px;position:relative;overflow:hidden}
-.comp-card.them{background:var(--card);border:1px solid var(--border)}
-.comp-card.us{background:linear-gradient(135deg,rgba(0,212,255,0.08),rgba(123,97,255,0.08));border:1px solid rgba(0,212,255,0.25)}
-.comp-card.us::before{content:'RECOMMENDED';position:absolute;top:16px;right:16px;background:var(--cyan);color:#000;padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px}
-.comp-card h3{font-size:24px;font-weight:700;color:var(--white);margin-bottom:6px}
-.comp-card .price{font-size:42px;font-weight:900;color:var(--white);margin:16px 0 4px}
-.comp-card .price span{font-size:16px;font-weight:400;color:var(--text)}
-.comp-card .price-note{font-size:13px;color:var(--text);margin-bottom:24px}
-.comp-card ul{list-style:none;display:flex;flex-direction:column;gap:12px}
-.comp-card li{font-size:14px;display:flex;align-items:center;gap:10px}
-.comp-card.us li::before{content:'\2713';color:var(--green);font-weight:700;font-size:16px}
-.comp-card.them li::before{content:'\2717';color:#ff4466;font-weight:700;font-size:16px}
-.comp-card.them li{color:#888}
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
 
-/* ═══ FEATURES ═══ */
-.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:50px}
-.feature{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all 0.3s}
-.feature:hover{border-color:rgba(0,212,255,0.2)}
-.feature .f-icon{font-size:24px;margin-bottom:12px}
-.feature h4{font-size:16px;font-weight:700;color:var(--white);margin-bottom:6px}
-.feature p{font-size:13px;color:var(--text);line-height:1.6}
+        .btn-primary:hover {
+            background-color: var(--accent-primary-hover);
+            transform: translateY(-1px);
+        }
 
-/* ═══ CTA ═══ */
-.cta-section{text-align:center;padding:120px 20px;position:relative;z-index:1}
-.cta-section h2{font-size:clamp(36px,5vw,56px);font-weight:900;color:var(--white);letter-spacing:-1.5px;margin-bottom:16px}
-.cta-section h2 .gradient{background:linear-gradient(135deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.cta-section p{font-size:18px;color:var(--text);margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto}
-.cta-buttons{display:flex;gap:16px;justify-content:center}
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
 
-/* ═══ FOOTER ═══ */
-footer{border-top:1px solid var(--border);padding:40px 20px;text-align:center;font-size:13px;color:#555;position:relative;z-index:1}
-footer .links{display:flex;gap:24px;justify-content:center;margin-bottom:16px}
-footer a{color:var(--text);transition:color 0.2s}
-footer a:hover{color:var(--cyan)}
+        .btn-secondary:hover {
+            background-color: var(--surface-color);
+            border-color: var(--text-secondary);
+        }
 
-/* ═══ RESPONSIVE ═══ */
-@media(max-width:768px){
-.steps{grid-template-columns:1fr}
-.industries{grid-template-columns:repeat(2,1fr)}
-.comparison{grid-template-columns:1fr}
-.features-grid{grid-template-columns:1fr}
-.stats-bar{flex-wrap:wrap;gap:30px}
-nav{padding:12px 20px}
-.nav-links{display:none}
-}
-</style>
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-tag {
+            color: var(--accent-primary);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .section-header h2 {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 72px;
+        }
+
+        .nav-brand {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-brand svg {
+            color: var(--accent-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            background: var(--text-primary);
+            color: var(--bg-color) !important;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .nav-cta:hover {
+            background: white;
+            opacity: 0.9;
+            transform: none;
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 160px 0 80px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Subtle background glow for depth */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(11, 15, 25, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 6vw, 72px);
+            margin-bottom: 24px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-gradient-text {
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 20px;
+            max-width: 680px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 64px;
+        }
+
+        /* ─── TRUST BAR ─── */
+        .trust-bar {
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 40px 0;
+            background: rgba(19, 27, 47, 0.3);
+            text-align: center;
+        }
+
+        .trust-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        .logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .logos svg {
+            height: 28px;
+            width: auto;
+            fill: currentColor;
+        }
+
+        /* ─── VALUE METRICS ─── */
+        .metrics-section {
+            padding: 100px 0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .metric-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .metric-card h3 {
+            font-size: 48px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .metric-card p {
+            font-weight: 500;
+        }
+
+        /* ─── HOW IT WORKS ─── */
+        .how-section {
+            padding: 100px 0;
+            background: rgba(19, 27, 47, 0.3);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        .step-card {
+            padding: 32px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .step-card:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .step-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 24px;
+        }
+
+        .step-card h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        /* ─── FEATURES ─── */
+        .features-section {
+            padding: 100px 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 20px;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .feature-item:hover {
+            background: var(--surface-color);
+            border-color: var(--border-color);
+        }
+
+        .feature-icon-wrapper {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        .feature-item h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        /* ─── CTA FOOTER ─── */
+        .cta-bottom {
+            padding: 100px 0;
+            text-align: center;
+            background: linear-gradient(180deg, transparent, rgba(19, 27, 47, 0.8));
+            border-top: 1px solid var(--border-color);
+        }
+
+        .cta-bottom h2 {
+            font-size: 40px;
+            margin-bottom: 24px;
+        }
+
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .metrics-grid, .steps-grid, .features-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 16px; }
+            .logos { gap: 30px; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="bg-glow">
-<div class="orb"></div>
-<div class="orb"></div>
-<div class="orb"></div>
-</div>
+    <nav>
+        <div class="container nav-content">
+            <a href="#" class="nav-brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" x2="12" y1="19" y2="22"></line></svg>
+                VoxAgent
+            </a>
+            <div class="nav-links">
+                <a href="#metrics">ROI</a>
+                <a href="#how-it-works">How it Works</a>
+                <a href="#features">Features</a>
+                <a href="/docs">Documentation</a>
+                <a href="/onboarding" class="nav-cta">Start Free Trial</a>
+            </div>
+        </div>
+    </nav>
 
-<nav>
-<div class="logo">Vox<span>Agent</span></div>
-<div class="nav-links">
-<a href="#how">How It Works</a>
-<a href="#industries">Industries</a>
-<a href="#pricing">Pricing</a>
-<a href="#features">Features</a>
-<a href="/onboarding" class="nav-cta">Get Started</a>
-</div>
-</nav>
+    <section class="hero container">
+        <h1>Enterprise-Grade AI Voice Agents. <span class="hero-gradient-text">Zero Engineering Required.</span></h1>
+        <p>Deploy secure, autonomous voice agents for sales, support, and operations in 15 minutes. Configured entirely through natural language.</p>
+        <div class="hero-ctas">
+            <a href="/onboarding" class="btn btn-primary">Start Building Free</a>
+            <a href="#how-it-works" class="btn btn-secondary">Learn More</a>
+        </div>
+    </section>
 
-<div class="hero">
-<div class="hero-badge"><span class="dot"></span> Now in Public Beta</div>
-<h1>AI Agents That <span class="gradient">Call For You</span></h1>
-<p class="sub">Deploy autonomous voice agents for any industry in 15 minutes. Configured through natural language. No code. No flowcharts. 83% cheaper than competitors.</p>
-<div class="hero-buttons">
-<a href="/onboarding" class="btn-primary">Start Building Free</a>
-<a href="/dashboard" class="btn-secondary">View Live Dashboard</a>
-</div>
-</div>
+    <div class="trust-bar">
+        <div class="container">
+            <div class="trust-label">Trusted by innovative teams</div>
+            <div class="logos">
+                <!-- Placeholder SVG Logos replacing trust signals -->
+                <svg viewBox="0 0 100 30"><text x="0" y="20" font-family="Arial" font-weight="bold" font-size="20">Acme Corp</text></svg>
+                <svg viewBox="0 0 100 30"><text x="0" y="20" font-family="Arial" font-weight="bold" font-size="20">GlobalHealth</text></svg>
+                <svg viewBox="0 0 100 30"><text x="0" y="20" font-family="Arial" font-weight="bold" font-size="20">Nexus Realty</text></svg>
+                <svg viewBox="0 0 100 30"><text x="0" y="20" font-family="Arial" font-weight="bold" font-size="20">FinTrust</text></svg>
+            </div>
+        </div>
+    </div>
 
-<div class="stats-bar">
-<div class="stat"><div class="number"><span>$0.078</span></div><div class="label">Per 5-min call</div></div>
-<div class="stat"><div class="number"><span>15</span> min</div><div class="label">To first call</div></div>
-<div class="stat"><div class="number"><span>83</span>%</div><div class="label">Cheaper than competitors</div></div>
-<div class="stat"><div class="number"><span>0</span></div><div class="label">Humans required</div></div>
-</div>
+    <section id="metrics" class="metrics-section container">
+        <div class="section-header">
+            <div class="section-tag">Value Proposition</div>
+            <h2>Dramatically reduce operational costs</h2>
+            <p>VoxAgent delivers the lowest cost-per-interaction in the industry without sacrificing reliability or human-like latency.</p>
+        </div>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>$0.07</h3>
+                <p>Average cost per call</p>
+            </div>
+            <div class="metric-card">
+                <h3>15m</h3>
+                <p>Average deployment time</p>
+            </div>
+            <div class="metric-card">
+                <h3>83%</h3>
+                <p>Cheaper than human SDRs</p>
+            </div>
+        </div>
+    </section>
 
-<section id="how">
-<div class="section-inner">
-<div class="section-label">How It Works</div>
-<div class="section-title">Three steps to autonomous calling</div>
-<div class="section-desc">No engineering team needed. Describe your agent in plain English, point it at a phone number, and watch it work.</div>
-<div class="steps">
-<div class="step">
-<div class="step-num">1</div>
-<h3>Describe Your Agent</h3>
-<p>Write a natural language prompt describing your agent's persona, goal, constraints, and escalation rules. Pick from industry templates or write your own.</p>
-<span class="tag">10-15 minutes</span>
-</div>
-<div class="step">
-<div class="step-num">2</div>
-<h3>Make the Call</h3>
-<p>Hit one API endpoint with a phone number. VoxAgent dials, greets, handles objections, books meetings, and hangs up gracefully. All autonomous.</p>
-<span class="tag">1 API call</span>
-</div>
-<div class="step">
-<div class="step-num">3</div>
-<h3>Analyze &amp; Iterate</h3>
-<p>Every call gets an AI-generated summary, outcome classification, and sentiment analysis. Tweak your prompts, see results on the next call.</p>
-<span class="tag">Real-time dashboard</span>
-</div>
-</div>
-</div>
-</section>
+    <section id="how-it-works" class="how-section">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-tag">How It Works</div>
+                <h2>Three steps to autonomous operations</h2>
+                <p>Replace complex flowcharts with intuitive, natural language prompting.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-icon">1</div>
+                    <h3>Provide Instructions</h3>
+                    <p>Describe your agent's persona, goals, and constraints in plain English. VoxAgent understands context inherently.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">2</div>
+                    <h3>Integrate Tools</h3>
+                    <p>Connect your calendar, CRM, or custom webhooks. The agent autonomously decides when to trigger these tools mid-conversation.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon">3</div>
+                    <h3>Monitor & Iterate</h3>
+                    <p>Review AI-generated summaries, sentiment metrics, and transcripts natively in the dashboard to refine performance.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="industries" style="background:rgba(0,0,0,0.3)">
-<div class="section-inner">
-<div class="section-label">Domain Agnostic</div>
-<div class="section-title">One platform. Every industry.</div>
-<div class="section-desc">The same engine powers agents for real estate, SaaS, solar, insurance, healthcare, and more. Zero code changes between industries.</div>
-<div class="industries">
-<div class="industry"><div class="icon">&#x1F3E0;</div><h4>Real Estate</h4><p>Buyer outreach, property viewings, lead qualification</p></div>
-<div class="industry"><div class="icon">&#x1F4BB;</div><h4>SaaS Sales</h4><p>Demo booking, decision-maker qualification</p></div>
-<div class="industry"><div class="icon">&#x2600;&#xFE0F;</div><h4>Solar Energy</h4><p>Free assessments, savings analysis scheduling</p></div>
-<div class="industry"><div class="icon">&#x1F6E1;&#xFE0F;</div><h4>Insurance</h4><p>Coverage reviews, policy renewals</p></div>
-<div class="industry"><div class="icon">&#x1F3E5;</div><h4>Healthcare</h4><p>Appointments, follow-ups, reminders</p></div>
-</div>
-</div>
-</section>
+    <section id="features" class="features-section container">
+        <div class="section-header">
+            <div class="section-tag">Enterprise Capabilities</div>
+            <h2>Built for scale, security, and compliance</h2>
+        </div>
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div>
+                    <h3>Multi-Tenant Security</h3>
+                    <p>Strict data isolation, role-based access control, and end-to-end encryption to protect your proprietary knowledge bases.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <div>
+                    <h3>Ultra-Low Latency</h3>
+                    <p>Direct bidirectional Mu-Law streaming combined with optimized GenAI models ensures sub-800ms conversational responses.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                </div>
+                <div>
+                    <h3>RAG Knowledge Injection</h3>
+                    <p>Upload PDFs or company guidelines. Our intelligent vector search ensures the agent answers hyper-specific questions accurately.</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon-wrapper">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                </div>
+                <div>
+                    <h3>Mid-Call Webhooks</h3>
+                    <p>Trigger external systems during the call. Schedule events, sync CRM data, or send confirmation emails on the fly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<section id="pricing">
-<div class="section-inner">
-<div class="section-label">Pricing</div>
-<div class="section-title">Built to be the cheapest. Period.</div>
-<div class="section-desc">Usage-based pricing. No seats, no minimums. Pay only for the calls your agents make.</div>
-<div class="comparison">
-<div class="comp-card them">
-<h3>Competitors</h3>
-<div class="price">$0.45 <span>/ call</span></div>
-<div class="price-note">Bland.ai, Air.ai, Retell average</div>
-<ul>
-<li>Per-seat or per-minute pricing</li>
-<li>Locked to specific industries</li>
-<li>Flowchart-based configuration</li>
-<li>Requires human supervision</li>
-<li>Days to onboard new agent</li>
-</ul>
-</div>
-<div class="comp-card us">
-<h3>VoxAgent</h3>
-<div class="price" style="color:var(--cyan)">$0.078 <span>/ call</span></div>
-<div class="price-note">Standard tier, 5-minute call</div>
-<ul>
-<li>Usage-based, no seat fees</li>
-<li>Any industry via natural language</li>
-<li>Prompt-as-configuration (GenAI native)</li>
-<li>Fully autonomous, zero humans</li>
-<li>15 minutes from signup to first call</li>
-</ul>
-</div>
-</div>
-</div>
-</section>
+    <section class="cta-bottom">
+        <div class="container">
+            <h2>Ready to transform your communication?</h2>
+            <div class="hero-ctas">
+                <a href="/onboarding" class="btn btn-primary">Get Started Free</a>
+                <a href="/dashboard" class="btn btn-secondary">View Live Dashboard</a>
+            </div>
+        </div>
+    </section>
 
-<section id="features">
-<div class="section-inner">
-<div class="section-label">Platform</div>
-<div class="section-title">Everything you need to scale calling</div>
-<div class="features-grid">
-<div class="feature"><div class="f-icon">&#x1F9E0;</div><h4>GenAI Native</h4><p>The LLM IS the call logic. No flowcharts, no decision trees. Your natural language prompt defines the entire conversation flow, objection handling, and escalation rules.</p></div>
-<div class="feature"><div class="f-icon">&#x1F527;</div><h4>Mid-Call Tools</h4><p>Agents can book meetings (Calendly), push to CRM (any webhook), look up contacts, transfer to humans, and end calls gracefully — all during live conversation.</p></div>
-<div class="feature"><div class="f-icon">&#x1F50A;</div><h4>Natural Voice</h4><p>Google Neural2 Journey voices that sound human. Sentence-level TTS streaming for sub-800ms response latency. Interruption handling built in.</p></div>
-<div class="feature"><div class="f-icon">&#x1F4CA;</div><h4>Post-Call Intelligence</h4><p>Every call gets an AI-generated summary, outcome classification (meeting booked, not interested, callback), sentiment analysis, and full transcript.</p></div>
-<div class="feature"><div class="f-icon">&#x1F512;</div><h4>Multi-Tenant Isolation</h4><p>PostgreSQL row-level security ensures complete data isolation between customers. API key authentication, DNC compliance checking on every dial.</p></div>
-<div class="feature"><div class="f-icon">&#x26A1;</div><h4>Hot-Reload Prompts</h4><p>Change your agent's behavior with a PATCH request. No deployment, no code review. Takes effect on the very next call.</p></div>
-</div>
-</div>
-</section>
-
-<div class="cta-section">
-<h2>Ready to <span class="gradient">replace your SDRs</span>?</h2>
-<p>Create your first AI calling agent in 15 minutes. No credit card required for the free tier.</p>
-<div class="cta-buttons">
-<a href="/onboarding" class="btn-primary">Get Started Free</a>
-<a href="/docs" class="btn-secondary">Read the Docs</a>
-</div>
-</div>
-
-<footer>
-<div class="links">
-<a href="/onboarding">Get Started</a>
-<a href="/dashboard">Dashboard</a>
-<a href="/docs">API Docs</a>
-<a href="/health">Status</a>
-</div>
-<p>VoxAgent v0.1.0 &mdash; GenAI Native Autonomous Calling Platform</p>
-</footer>
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="/onboarding">Sign Up</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/docs">API Reference</a>
+                <a href="/health">System Status</a>
+            </div>
+            <p style="font-size: 13px;">&copy; 2024 VoxAgent AI. All rights reserved.</p>
+        </div>
+    </footer>
 
 </body>
 </html>"""
