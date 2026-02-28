@@ -26,6 +26,7 @@ redis[asyncio]>=5.0.0
 pydantic>=2.7.0
 pydantic-settings>=2.3.0
 python-dotenv>=1.0.0
+pypdf>=5.1.0
 
 # Audio processing
 numpy>=1.26.0
