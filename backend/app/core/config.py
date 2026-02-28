@@ -35,7 +35,7 @@ class Settings(BaseSettings):
 
     # Database - Railway uses DATABASE_URL with postgresql:// prefix
     # We need postgresql+asyncpg:// for SQLAlchemy async
-    database_url: str = "postgresql+asyncpg://agent:agent@localhost:5432/salescallagent"
+    database_url: str = "postgresql+asyncpg://agent:agent@localhost:5432/voxagent"
 
     @property
     def async_database_url(self) -> str:
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # GCS
-    gcs_bucket_name: str = "salescallagent-media"
+    gcs_bucket_name: str = "voxagent-media"
 
     # Calendly
     calendly_api_key: str = ""

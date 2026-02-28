@@ -1,6 +1,6 @@
 <div align="center">
   
-# 🚀 SalesCallAgent
+# 🚀 VoxAgent
 ### The Next-Generation, Ultra-Low Latency AI Voice Assistant for Enterprises
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -12,9 +12,9 @@
 
 ---
 
-Welcome to **SalesCallAgent**—an autonomous, production-ready AI Voice Assistant designed to supercharge your inbound and outbound calls. Built using state-of-the-art **Telnyx WebSockets** and **Google Gemini Live Native Audio**, this agent doesn't just read text; it *understands* context, extracts meaning in real-time, and interacts with human-like latency. 
+Welcome to **VoxAgent**—an autonomous, production-ready AI Voice Assistant designed to supercharge your inbound and outbound calls. Built using state-of-the-art **Telnyx WebSockets** and **Google Gemini Live Native Audio**, this agent doesn't just read text; it *understands* context, extracts meaning in real-time, and interacts with human-like latency. 
 
-Whether you need a frontline receptionist, a 24/7 technical support agent with encyclopedic knowledge, or an automated sales representative that instantly emails calendar invites, SalesCallAgent acts as a frictionless extension of your business.
+Whether you need a frontline receptionist, a 24/7 technical support agent with encyclopedic knowledge, or an automated sales representative that instantly emails calendar invites, VoxAgent acts as a frictionless extension of your business.
 
 ## ✨ Dazzling Feature List
 
@@ -29,7 +29,7 @@ Whether you need a frontline receptionist, a 24/7 technical support agent with e
 
 ## 📖 The Development Journey
 
-SalesCallAgent didn't pop out of thin air; it evolved through rigorous experimentation and bleeding-edge technical fixes to solve the hardest problems in voice telephony.
+VoxAgent didn't pop out of thin air; it evolved through rigorous experimentation and bleeding-edge technical fixes to solve the hardest problems in voice telephony.
 
 Here is how we got here:
 
@@ -58,7 +58,7 @@ Want to see the magic yourself? Stand up your instance in minutes.
 1. **Clone & Install**
    ```bash
    git clone <your-repo-url>
-   cd salescallagent
+   cd voxagent
    python -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
