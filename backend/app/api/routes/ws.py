@@ -136,13 +136,23 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
             log.warning("gemini_live_connected call_id=%s", call_id)
 
             # Send initial greeting prompt
-            await gemini_session.send(
-                input="The call has just been answered. Deliver your opening greeting. Be warm and natural.",
-                end_of_turn=True,
+            await gemini_session.send_client_content(
+                turns=types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(
+                        text="The call has just been answered. Deliver your opening greeting. Be warm and natural."
+                    )]
+                ),
+                turn_complete=True,
             )
+
+            audio_chunks_sent = 0
+            audio_bytes_sent = 0
+            audio_chunks_received = 0
 
             async def receive_from_gemini():
                 """Receive audio from Gemini Live → transcode → send to Telnyx."""
+                nonlocal audio_chunks_sent, audio_bytes_sent
                 try:
                     async for response in gemini_session.receive():
                         server_content = response.server_content
@@ -154,17 +164,30 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                                     pcm_8k = resample_pcm(pcm_24k, 24000, 8000)
                                     # Convert PCM → mu-law
                                     mulaw = pcm_to_mulaw(pcm_8k)
-                                    # Send to Telnyx
+                                    audio_chunks_sent += 1
+                                    audio_bytes_sent += len(mulaw)
+                                    # Send to Telnyx as base64 mu-law in RTP-compatible format
                                     payload = base64.b64encode(mulaw).decode()
                                     await websocket.send_json({
                                         "event": "media",
                                         "media": {"payload": payload}
                                     })
+                                    if audio_chunks_sent % 10 == 1:
+                                        log.warning(
+                                            "gemini→telnyx chunk=%d total_bytes=%d mulaw_len=%d call_id=%s",
+                                            audio_chunks_sent, audio_bytes_sent, len(mulaw), call_id
+                                        )
+                        if server_content and server_content.turn_complete:
+                            log.warning("gemini_turn_complete call_id=%s chunks_sent=%d bytes_sent=%d",
+                                        call_id, audio_chunks_sent, audio_bytes_sent)
                 except Exception as exc:
                     log.warning("gemini_receive_error call_id=%s error=%s", call_id, str(exc))
+                    import traceback
+                    log.warning("gemini_receive_traceback: %s", traceback.format_exc())
 
             async def receive_from_telnyx():
                 """Receive audio from Telnyx → transcode → send to Gemini Live."""
+                nonlocal audio_chunks_received
                 try:
                     while True:
                         raw = await websocket.receive_text()
@@ -173,24 +196,34 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                         if data.get("event") == "media":
                             payload = data["media"]["payload"]
                             mulaw = base64.b64decode(payload)
+                            audio_chunks_received += 1
+                            if audio_chunks_received % 50 == 1:
+                                log.warning(
+                                    "telnyx→gemini chunk=%d mulaw_len=%d call_id=%s",
+                                    audio_chunks_received, len(mulaw), call_id
+                                )
                             # Convert mu-law → PCM
                             pcm_8k = mulaw_to_pcm(mulaw)
                             # Upsample 8kHz → 24kHz
                             pcm_24k = resample_pcm(pcm_8k, 8000, 24000)
-                            # Send to Gemini
-                            await gemini_session.send(
-                                input={"data": pcm_24k, "mime_type": "audio/pcm"}
+                            # Send to Gemini using realtime input
+                            await gemini_session.send_realtime_input(
+                                media=types.Blob(data=pcm_24k, mime_type="audio/pcm;rate=24000")
                             )
                         elif data.get("event") == "start":
-                            log.warning("ws_stream_start call_id=%s", call_id)
+                            log.warning("ws_stream_start call_id=%s data=%s", call_id, json.dumps(data)[:200])
                         elif data.get("event") == "stop":
                             log.warning("ws_stream_stop call_id=%s", call_id)
                             break
+                        else:
+                            log.warning("ws_unknown_event call_id=%s event=%s", call_id, data.get("event"))
 
                 except WebSocketDisconnect:
                     log.warning("ws_disconnected call_id=%s", call_id)
                 except Exception as exc:
                     log.warning("telnyx_receive_error call_id=%s error=%s", call_id, str(exc))
+                    import traceback
+                    log.warning("telnyx_receive_traceback: %s", traceback.format_exc())
 
             await asyncio.gather(receive_from_gemini(), receive_from_telnyx())
 

@@ -158,9 +158,11 @@ async def start_streaming(call_control_id: str, call_id: str) -> bool:
     This is where the real-time audio pipeline begins.
     """
     stream_url = f"{settings.websocket_base_url}/ws/calls/{call_id}"
+    log.warning("start_streaming url=%s call_id=%s", stream_url, call_id)
     return await _call_command(call_control_id, "streaming_start", {
         "stream_url": stream_url,
-        "stream_track": "inbound_track",
+        "stream_track": "both_tracks",
+        "stream_bidirectional_mode": "rtp",
         "enable_dialogflow": False,
     })
 
