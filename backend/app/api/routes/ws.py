@@ -135,16 +135,9 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
         ) as gemini_session:
             log.warning("gemini_live_connected call_id=%s", call_id)
 
-            # Send initial greeting prompt
-            await gemini_session.send_client_content(
-                turns=types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(
-                        text="The call has just been answered. Deliver your opening greeting. Be warm and natural."
-                    )]
-                ),
-                turn_complete=True,
-            )
+            # Greeting flag: don't forward caller audio until greeting is done
+            # Otherwise the incoming audio interrupts Gemini before it speaks
+            greeting_done = asyncio.Event()
 
             audio_chunks_sent = 0
             audio_bytes_sent = 0
@@ -180,10 +173,17 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                         if server_content and server_content.turn_complete:
                             log.warning("gemini_turn_complete call_id=%s chunks_sent=%d bytes_sent=%d",
                                         call_id, audio_chunks_sent, audio_bytes_sent)
+                            # Signal that greeting is done, audio forwarding can begin
+                            if not greeting_done.is_set():
+                                greeting_done.set()
+                                log.warning("greeting_done call_id=%s — now forwarding caller audio", call_id)
                 except Exception as exc:
                     log.warning("gemini_receive_error call_id=%s error=%s", call_id, str(exc))
                     import traceback
                     log.warning("gemini_receive_traceback: %s", traceback.format_exc())
+                finally:
+                    # Ensure greeting_done is set even on error so telnyx loop doesn't hang
+                    greeting_done.set()
 
             async def receive_from_telnyx():
                 """Receive audio from Telnyx → transcode → send to Gemini Live."""
@@ -194,6 +194,13 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                         data = json.loads(raw)
 
                         if data.get("event") == "media":
+                            # Don't forward audio until greeting is done
+                            if not greeting_done.is_set():
+                                audio_chunks_received += 1
+                                if audio_chunks_received == 1:
+                                    log.warning("telnyx_audio_buffering call_id=%s (waiting for greeting)", call_id)
+                                continue
+
                             payload = data["media"]["payload"]
                             mulaw = base64.b64decode(payload)
                             audio_chunks_received += 1
@@ -224,6 +231,18 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                     log.warning("telnyx_receive_error call_id=%s error=%s", call_id, str(exc))
                     import traceback
                     log.warning("telnyx_receive_traceback: %s", traceback.format_exc())
+
+            # Send greeting FIRST, before starting the audio bridge
+            await gemini_session.send_client_content(
+                turns=types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(
+                        text="The call has just been answered. Deliver your opening greeting. Be warm and natural."
+                    )]
+                ),
+                turn_complete=True,
+            )
+            log.warning("greeting_prompt_sent call_id=%s", call_id)
 
             await asyncio.gather(receive_from_gemini(), receive_from_telnyx())
 
