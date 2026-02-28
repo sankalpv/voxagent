@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     calendly_api_key: str = ""
     calendly_event_url: str = ""
 
+    # SMTP Settings (e.g. Resend, Sendgrid, Gmail)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+
     @property
     def websocket_base_url(self) -> str:
         return self.public_base_url.replace("https://", "wss://").replace("http://", "ws://")

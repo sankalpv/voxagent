@@ -15,6 +15,11 @@ import httpx
 
 from backend.app.core.config import settings
 from backend.app.services.tools.base import register_tool
+from backend.app.services.email_service import send_email
+from backend.app.db.database import AsyncSessionLocal
+from backend.app.db.models import Call, Contact
+from sqlalchemy import select
+import uuid
 
 log = logging.getLogger(__name__)
 
@@ -41,6 +46,28 @@ async def _book_meeting(
     In production, this would use the full Calendly API to create
     one-off scheduled events directly.
     """
+    
+    # Update the Contact's Email in the Database
+    try:
+        if invitee_email:
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Call).where(Call.id == uuid.UUID(call_id))
+                )
+                call = result.scalar_one_or_none()
+                if call and call.contact_id:
+                    result = await db.execute(
+                        select(Contact).where(Contact.id == call.contact_id)
+                    )
+                    contact = result.scalar_one_or_none()
+                    if contact and contact.email != invitee_email:
+                        contact.email = invitee_email
+                        await db.commit()
+                        log.info("contact_email_updated", contact_id=str(contact.id), email=invitee_email)
+    except Exception as e:
+         log.error("failed_to_update_contact_email", error=str(e))
+         
+
     if not settings.calendly_api_key:
         # Fallback: generate a scheduling link
         link = settings.calendly_event_url or "https://calendly.com"
@@ -48,12 +75,23 @@ async def _book_meeting(
             link += f"?name={invitee_name.replace(' ', '+')}"
         if invitee_email:
             link += f"&email={invitee_email}"
-
+        # Send Appointment Confirmation Email Fast (Fallback mode)
+        if invitee_email:
+            # We don't block on this
+            import asyncio
+            asyncio.create_task(
+                 send_email(
+                     to_email=invitee_email,
+                     subject="Your Appointment Confirmation",
+                     text_content=f"Hi {invitee_name or 'there'},\n\nWe received your request for an appointment. You can book a time that works for you using this link: {link}\n\nThanks!",
+                 )
+            )
+            
         return {
             "success": True,
             "method": "scheduling_link",
             "scheduling_link": link,
-            "message": f"A scheduling link has been prepared for {invitee_name or 'the caller'}. "
+            "message": f"A scheduling link has been prepared for {invitee_name or 'the caller'} and sent to their email. "
                        f"They can book at their convenience: {link}",
         }
 
@@ -93,13 +131,23 @@ async def _book_meeting(
             if invitee_email:
                 await _send_invite(client, invitee_email, invitee_name, scheduling_link)
 
+                # Send Appointment Confirmation Email Fast (Full mode)
+                import asyncio
+                asyncio.create_task(
+                    send_email(
+                        to_email=invitee_email,
+                        subject="Your Appointment Confirmation & Invite",
+                        text_content=f"Hi {invitee_name or 'there'},\n\nWe have prepared an appointment link for you. Please complete your registration via this Calendly invite: {scheduling_link}\n\nThanks!",
+                    )
+                )
+
             return {
                 "success": True,
                 "available": True,
                 "scheduling_link": scheduling_link,
                 "available_slots": availability[:3],  # Top 3 slots
                 "message": f"Great! I've found some available times. "
-                           f"I'll send a calendar invite to {invitee_email}.",
+                           f"I'll send a calendar invite and confirmation email to {invitee_email}.",
                 "email_sent": bool(invitee_email),
             }
 
