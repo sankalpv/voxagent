@@ -178,32 +178,35 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                 """Receive audio from Gemini Live → transcode → send to Telnyx."""
                 nonlocal audio_chunks_sent, audio_bytes_sent
                 try:
-                    async for response in gemini_session.receive():
-                        server_content = response.server_content
-                        if server_content and server_content.model_turn:
-                            for part in server_content.model_turn.parts:
-                                if part.inline_data and part.inline_data.data:
-                                    pcm_24k = part.inline_data.data
-                                    # Downsample 24kHz → 8kHz
-                                    pcm_8k = resample_pcm(pcm_24k, 24000, 8000)
-                                    # Convert PCM → mu-law
-                                    mulaw = pcm_to_mulaw(pcm_8k)
-                                    audio_chunks_sent += 1
-                                    audio_bytes_sent += len(mulaw)
-                                    # Send to Telnyx as base64 mu-law
-                                    payload = base64.b64encode(mulaw).decode()
-                                    await websocket.send_json({
-                                        "event": "media",
-                                        "media": {"payload": payload}
-                                    })
-                                    if audio_chunks_sent % 10 == 1:
-                                        log.warning(
-                                            "gemini→telnyx chunk=%d total_bytes=%d mulaw_len=%d call_id=%s",
-                                            audio_chunks_sent, audio_bytes_sent, len(mulaw), call_id
-                                        )
-                        if server_content and server_content.turn_complete:
-                            log.warning("gemini_turn_complete call_id=%s chunks_sent=%d bytes_sent=%d",
-                                        call_id, audio_chunks_sent, audio_bytes_sent)
+                    while True:
+                        async for response in gemini_session.receive():
+                            server_content = response.server_content
+                            if server_content and server_content.model_turn:
+                                for part in server_content.model_turn.parts:
+                                    if part.inline_data and part.inline_data.data:
+                                        pcm_24k = part.inline_data.data
+                                        # Downsample 24kHz → 8kHz
+                                        pcm_8k = resample_pcm(pcm_24k, 24000, 8000)
+                                        # Convert PCM → mu-law
+                                        mulaw = pcm_to_mulaw(pcm_8k)
+                                        audio_chunks_sent += 1
+                                        audio_bytes_sent += len(mulaw)
+                                        # Send to Telnyx as base64 mu-law
+                                        payload = base64.b64encode(mulaw).decode()
+                                        await websocket.send_json({
+                                            "event": "media",
+                                            "media": {"payload": payload}
+                                        })
+                                        if audio_chunks_sent % 10 == 1:
+                                            log.warning(
+                                                "gemini→telnyx chunk=%d total_bytes=%d mulaw_len=%d call_id=%s",
+                                                audio_chunks_sent, audio_bytes_sent, len(mulaw), call_id
+                                            )
+                            if server_content and server_content.turn_complete:
+                                log.warning("gemini_turn_complete call_id=%s chunks_sent=%d bytes_sent=%d",
+                                            call_id, audio_chunks_sent, audio_bytes_sent)
+                except asyncio.CancelledError:
+                    pass
                 except Exception as exc:
                     log.warning("gemini_receive_error call_id=%s error=%s", call_id, str(exc))
                     import traceback
