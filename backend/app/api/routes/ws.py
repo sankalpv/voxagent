@@ -161,6 +161,14 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
             config=config,
         ) as gemini_session:
             log.warning("gemini_live_connected call_id=%s", call_id)
+            
+            # CRITICAL FIX: Gemini 2.5 Flash native audio requires an initial client message 
+            # to "unlock" the multimodal streaming response reliably
+            try:
+                await gemini_session.send(input="Hello, I am the caller. Please proceed with your greeting.", end_of_turn=True)
+                log.warning("greeting_prompt_sent call_id=%s", call_id)
+            except Exception as e:
+                log.warning("Error sending initial text prompt: %s", e)
 
             audio_chunks_sent = 0
             audio_bytes_sent = 0
@@ -241,12 +249,30 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                     import traceback
                     log.warning("telnyx_receive_traceback: %s", traceback.format_exc())
 
-            # Pure audio mode — no text-based content turns.
-            # Gemini will speak first because system_instruction tells it to greet immediately.
-            # Caller audio flows immediately via send_realtime_input.
-            log.warning("starting_audio_bridge call_id=%s (pure audio mode, greeting via system instruction)", call_id)
-
-            await asyncio.gather(receive_from_gemini(), receive_from_telnyx())
+            # We need to run these concurrently.
+            receive_task = asyncio.create_task(receive_from_gemini())
+            send_task = asyncio.create_task(receive_from_telnyx())
+            
+            # Wait for either task to finish (or error)
+            done, pending = await asyncio.wait(
+                [receive_task, send_task],
+                return_when=asyncio.FIRST_COMPLETED
+            )
+            
+            # Cancel the remaining task
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                
+            # If the task that finished raised an exception, re-raise it here
+            for task in done:
+                exc = task.exception()
+                if exc:
+                    log.warning("Task failed with exception: %s", exc)
+                    raise exc
 
     except Exception as exc:
         log.warning("gemini_live_error call_id=%s error=%s", call_id, str(exc))
