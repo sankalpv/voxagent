@@ -5,7 +5,6 @@ TTL: 1 hour (well beyond the longest realistic call).
 """
 
 import json
-import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any

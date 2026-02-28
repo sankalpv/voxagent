@@ -5,11 +5,9 @@ Tests the audio pipeline, event handling logic, and system prompt construction
 WITHOUT requiring real Gemini or Telnyx connections.
 """
 
-import asyncio
 import base64
 import json
 import struct
-import math
 import pytest
 
 
@@ -152,7 +150,7 @@ class TestAudioPipelineSizes:
     def test_pcm_8k_from_24k(self):
         """960 bytes PCM 24kHz → 320 bytes PCM 8kHz."""
         from backend.app.api.routes.ws import resample_pcm
-        pcm_24k = struct.pack(f'<480h', *([0] * 480))
+        pcm_24k = struct.pack('<480h', *([0] * 480))
         assert len(resample_pcm(pcm_24k, 24000, 8000)) == 320
 
     @pytest.mark.unit

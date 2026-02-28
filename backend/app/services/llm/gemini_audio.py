@@ -4,10 +4,8 @@ Uses gemini-2.5-flash-native-audio-latest for Gemini Live Chat quality.
 """
 
 import asyncio
-import base64
 import logging
 import struct
-from typing import Optional
 
 from backend.app.core.config import settings
 

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.security import TenantDep
 from backend.app.db.database import get_db
-from backend.app.db.models import AgentConfig, Tenant
+from backend.app.db.models import AgentConfig
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -36,6 +36,7 @@ class AgentCreateRequest(BaseModel):
     enabled_tools: list[str] = Field(default_factory=list, description="Tool names this agent can use")
     voicemail_script: str | None = Field(default=None, description="Script for voicemail; AI-generated if null")
     max_call_duration_seconds: int = Field(default=600, ge=30, le=3600)
+    knowledge_base_id: UUID | None = Field(default=None, description="Optional ID of a connected Knowledge Base for RAG context")
 
 
 class AgentUpdateRequest(BaseModel):
@@ -51,6 +52,7 @@ class AgentUpdateRequest(BaseModel):
     voicemail_script: str | None = None
     max_call_duration_seconds: int | None = None
     is_active: bool | None = None
+    knowledge_base_id: UUID | None = None
 
 
 class AgentResponse(BaseModel):
@@ -68,6 +70,7 @@ class AgentResponse(BaseModel):
     enabled_tools: list[str]
     voicemail_script: str | None
     max_call_duration_seconds: int
+    knowledge_base_id: UUID | None
     created_at: str
     updated_at: str
 
@@ -96,6 +99,7 @@ async def create_agent(
         enabled_tools=body.enabled_tools,
         voicemail_script=body.voicemail_script,
         max_call_duration_seconds=body.max_call_duration_seconds,
+        knowledge_base_id=body.knowledge_base_id,
     )
     db.add(agent)
     await db.flush()
@@ -194,6 +198,7 @@ def _to_response(agent: AgentConfig) -> AgentResponse:
         enabled_tools=agent.enabled_tools or [],
         voicemail_script=agent.voicemail_script,
         max_call_duration_seconds=agent.max_call_duration_seconds,
+        knowledge_base_id=agent.knowledge_base_id,
         created_at=agent.created_at.isoformat() if agent.created_at else "",
         updated_at=agent.updated_at.isoformat() if agent.updated_at else "",
     )

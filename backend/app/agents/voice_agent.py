@@ -20,12 +20,10 @@ Key design decisions:
 import asyncio
 import logging
 import time
-from datetime import datetime
 
 from backend.app.services.llm.gemini import (
     ToolDefinition,
     complete,
-    stream_complete,
 )
 from backend.app.services.memory.short_term import (
     CallSession,
@@ -33,11 +31,9 @@ from backend.app.services.memory.short_term import (
     append_turn,
     get_recent_turns,
     get_session,
-    set_speaking,
     update_session,
 )
 from backend.app.services.stt.google_stt import StreamingSTT
-from backend.app.services.tts.google_tts import synthesize, synthesize_streaming
 
 log = logging.getLogger(__name__)
 
@@ -385,7 +381,7 @@ class VoiceAgent:
         log.warning("speak call_id=%s text=%s", self.call_id, text[:100])
 
         try:
-            import uuid, base64, json
+            import uuid
             from backend.app.db.database import AsyncSessionLocal
             from backend.app.db.models import Call
             from sqlalchemy import select

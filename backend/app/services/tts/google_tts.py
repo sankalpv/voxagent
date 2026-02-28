@@ -10,9 +10,7 @@ Audio format: LINEAR16 at 8kHz → converted to μ-law for Telnyx.
 import asyncio
 import logging
 import struct
-import math
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 
 from google.cloud import texttospeech
 

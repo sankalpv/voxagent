@@ -8,10 +8,11 @@ from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    JSON, BigInteger, Boolean, DateTime, ForeignKey,
+    JSON, Boolean, DateTime, ForeignKey,
     Integer, Numeric, String, Text, func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -97,6 +98,9 @@ class AgentConfig(Base):
     # Optional voicemail script (AI-generated if null)
     voicemail_script: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Optional linked Knowledge Base for RAG
+    knowledge_base_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id"), nullable=True)
+
     # Metadata
     max_call_duration_seconds: Mapped[int] = mapped_column(Integer, default=600)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -104,6 +108,7 @@ class AgentConfig(Base):
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="agents")
     calls: Mapped[list["Call"]] = relationship("Call", back_populates="agent")
+    knowledge_base: Mapped["KnowledgeBase | None"] = relationship("KnowledgeBase", back_populates="agents")
 
 
 # ─── Contact ──────────────────────────────────────────────────────────────────
@@ -187,3 +192,49 @@ class CallEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     call: Mapped["Call"] = relationship("Call", back_populates="events")
+
+
+# ─── RAG / Knowledge Base ─────────────────────────────────────────────────────
+
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_bases"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    tenant: Mapped["Tenant"] = relationship("Tenant")
+    agents: Mapped[list["AgentConfig"]] = relationship("AgentConfig", back_populates="knowledge_base")
+    documents: Mapped[list["Document"]] = relationship("Document", back_populates="knowledge_base", cascade="all, delete-orphan")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    knowledge_base_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("knowledge_bases.id"), nullable=False)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(100), nullable=True)  # e.g., application/pdf
+    status: Mapped[str] = mapped_column(String(50), default="processing")  # processing, ready, error
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    knowledge_base: Mapped["KnowledgeBase"] = relationship("KnowledgeBase", back_populates="documents")
+    chunks: Mapped[list["DocumentChunk"]] = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+    
+    # 768 dimensions for models/text-embedding-004
+    # The HNSW index will be added dynamically by Alembic
+    embedding: Mapped[str] = mapped_column(Vector(768), nullable=False)
+
+    document: Mapped["Document"] = relationship("Document", back_populates="chunks")

@@ -16,10 +16,8 @@ Telnyx flow:
   5. On hangup: webhook call.hangup → cleanup
 """
 
-import asyncio
 import base64
 import logging
-from typing import Any
 
 import httpx
 

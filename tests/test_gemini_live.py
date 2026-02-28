@@ -12,8 +12,6 @@ Requires GEMINI_API_KEY in .env. Skip with: pytest -m "not integration"
 """
 
 import asyncio
-import math
-import struct
 import time
 import os
 import pytest
@@ -69,7 +67,7 @@ class TestGeminiLiveConnection:
             print("[TEST] Receiving from session...")
             while True:
                 async for response in session.receive():
-                    print(f"[TEST] Got response piece")
+                    print("[TEST] Got response piece")
                     sc = response.server_content
                     if sc and sc.model_turn:
                         for part in sc.model_turn.parts:
@@ -78,9 +76,9 @@ class TestGeminiLiveConnection:
                     if sc and sc.turn_complete:
                         turn_complete = True
                         break
-                    if time.time() - start > 10:
+                    if time.time() - start > 30:
                         break
-                if turn_complete or time.time() - start > 10:
+                if turn_complete or time.time() - start > 30:
                     break
 
             assert audio_bytes > 0, "No audio data received"
@@ -140,9 +138,9 @@ class TestGeminiLiveConnection:
                         turn_complete = True
                         break
                     
-                    if time.time() - start > 10:
+                    if time.time() - start > 30:
                         break
-                if turn_complete or time.time() - start > 10:
+                if turn_complete or time.time() - start > 30:
                     break
 
             assert any("pcm" in m.lower() for m in mime_types), f"Expected audio/pcm, got: {mime_types}"
@@ -263,7 +261,7 @@ class TestGeminiLiveConnection:
             done, pending = await asyncio.wait(
                 [receive_task, send_task],
                 return_when=asyncio.ALL_COMPLETED,
-                timeout=15.0
+                timeout=30.0
             )
             
             for task in pending:

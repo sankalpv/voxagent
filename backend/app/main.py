@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI):
     log.info("starting", env=settings.app_env, port=settings.app_port)
 
     # Load Google Cloud credentials from base64 env var (for Railway/cloud deploy)
-    import os, base64
+    import os
+    import base64
     gcp_creds_b64 = os.environ.get("GOOGLE_CREDENTIALS_BASE64", "")
     if gcp_creds_b64:
         creds_path = "/tmp/gcp-credentials.json"
@@ -63,7 +64,7 @@ async def lifespan(app: FastAPI):
 
         # Seed default tenant if not exists
         from backend.app.db.models import Tenant
-        from sqlalchemy import select, text
+        from sqlalchemy import select
         import uuid
         async with AsyncSessionLocal() as db:
             result = await db.execute(
@@ -140,6 +141,7 @@ app.add_middleware(
 
 from backend.app.api.routes.agents import router as agents_router
 from backend.app.api.routes.calls import router as calls_router
+from backend.app.api.routes.knowledge import router as knowledge_router
 from backend.app.api.routes.webhooks.telnyx import router as telnyx_webhook_router
 from backend.app.api.routes.ws import router as ws_router
 from backend.app.api.routes.dashboard import router as dashboard_router
@@ -148,6 +150,7 @@ from backend.app.api.routes.landing import router as landing_router
 
 app.include_router(agents_router, prefix="/api/v1/agents", tags=["agents"])
 app.include_router(calls_router, prefix="/api/v1/calls", tags=["calls"])
+app.include_router(knowledge_router, prefix="/api/v1/knowledge", tags=["knowledge"])
 app.include_router(telnyx_webhook_router, prefix="/webhooks/telnyx", tags=["webhooks"])
 app.include_router(ws_router, tags=["websocket"])
 app.include_router(dashboard_router, prefix="/dashboard", tags=["dashboard"])

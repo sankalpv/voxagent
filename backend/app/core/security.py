@@ -10,7 +10,6 @@ Every authenticated request gets a resolved tenant_id attached to the request st
 
 import logging
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select

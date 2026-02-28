@@ -16,7 +16,7 @@ them naturally during conversation.
 """
 
 import logging
-from typing import Any, Callable, Awaitable
+from typing import Callable, Awaitable
 
 from backend.app.services.llm.gemini import ToolDefinition
 
@@ -272,6 +272,11 @@ def _register_external_tools():
         from backend.app.services.tools import webhook_tool  # noqa: F401
     except ImportError:
         log.debug("webhook_tool not available")
+
+    try:
+        from backend.app.services.tools import rag_tool  # noqa: F401
+    except ImportError:
+        log.debug("rag_tool not available")
 
 
 _register_external_tools()

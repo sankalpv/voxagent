@@ -154,3 +154,37 @@ VALUES (
     'dev-api-key-change-in-production',
     'standard'
 ) ON CONFLICT DO NOTHING;
+
+-- ─── Knowledge Bases (RAG) ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS knowledge_bases (
+    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name         VARCHAR(255) NOT NULL,
+    description  TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ─── Documents ───────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS documents (
+    id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    knowledge_base_id UUID NOT NULL REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+    filename          VARCHAR(255) NOT NULL,
+    content_type      VARCHAR(100),
+    status            VARCHAR(50) DEFAULT 'processing',
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ─── Document Chunks (Vector Store) ──────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS document_chunks (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    document_id   UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    chunk_index   INTEGER NOT NULL,
+    chunk_text    TEXT NOT NULL,
+    embedding     VECTOR(768) NOT NULL
+);
+
+-- ─── Vector Index (HNSW for low latency ANN search) ──────────────────────────
+CREATE INDEX IF NOT EXISTS idx_document_chunks_embedding 
+ON document_chunks USING hnsw (embedding vector_cosine_ops);
+

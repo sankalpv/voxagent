@@ -19,7 +19,7 @@ from sqlalchemy.orm import selectinload
 from backend.app.core.security import TenantDep
 from backend.app.db.database import get_db
 from backend.app.db.models import (
-    AgentConfig, Call, CallDirection, CallEvent, CallStatus, Contact,
+    AgentConfig, Call, CallDirection, CallStatus, Contact,
 )
 
 log = logging.getLogger(__name__)

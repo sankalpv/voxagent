@@ -141,20 +141,40 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
         from google import genai
         from google.genai import types
         from backend.app.core.config import settings
+        from backend.app.services.tools.base import get_tool_definitions
 
         gemini_client = genai.Client(api_key=settings.gemini_api_key)
 
-        config = types.LiveConnectConfig(
-            response_modalities=["AUDIO"],
-            speech_config=types.SpeechConfig(
+        # Build tools array
+        # Right now we inject `book_meeting`, `transfer_call`, `end_call`, and checking if KnowledgeBase is available.
+        enabled_tools = ["book_meeting", "transfer_call", "end_call", "lookup_contact"]
+        
+        # If Agent has a KB, enable the RAG tool
+        if 'agent' in locals() and getattr(agent, 'knowledge_base_id', None):
+            enabled_tools.append("query_knowledge_base")
+            
+        tool_defs = get_tool_definitions(enabled_tools)
+        gemini_tools = None
+        if tool_defs:
+            from backend.app.services.llm.gemini import _build_genai_tools
+            gemini_tools = _build_genai_tools(tool_defs)
+
+        config_kwargs = {
+            "response_modalities": ["AUDIO"],
+            "speech_config": types.SpeechConfig(
                 voice_config=types.VoiceConfig(
                     prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name="Kore")
                 )
             ),
-            system_instruction=types.Content(
+            "system_instruction": types.Content(
                 parts=[types.Part.from_text(text=system_prompt)]
-            ),
-        )
+            )
+        }
+        
+        if gemini_tools:
+           config_kwargs["tools"] = gemini_tools
+           
+        config = types.LiveConnectConfig(**config_kwargs)
 
         async with gemini_client.aio.live.connect(
             model="gemini-2.5-flash-native-audio-latest",
@@ -202,6 +222,33 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                                                 "gemini→telnyx chunk=%d total_bytes=%d mulaw_len=%d call_id=%s",
                                                 audio_chunks_sent, audio_bytes_sent, len(mulaw), call_id
                                             )
+                                    elif part.executable_code:
+                                         pass
+                                    elif part.function_call:
+                                        log.warning("gemini_tool_call received: %s with args: %s", part.function_call.name, part.function_call.args)
+                                        # Execute the tool
+                                        from backend.app.services.tools.base import execute_tool
+                                        tool_args = dict(part.function_call.args) if part.function_call.args else {}
+                                        tool_result = await execute_tool(
+                                            tool_name=part.function_call.name,
+                                            args=tool_args,
+                                            call_id=call_id,
+                                            tenant_id=str(agent.tenant_id) if 'agent' in locals() and agent else "",
+                                        )
+                                        log.warning("gemini_tool_result: %s", tool_result)
+                                        
+                                        # Send result back to Gemini
+                                        try:
+                                            # Using types.FunctionResponse per GenAI SDK
+                                            function_response_part = types.Part.from_function_response(
+                                                name=part.function_call.name,
+                                                response=tool_result
+                                            )
+                                            await gemini_session.send(input=function_response_part, end_of_turn=True)
+                                            log.warning("gemini_tool_result_sent: %s", part.function_call.name)
+                                        except Exception as e:
+                                            log.warning("gemini_tool_result_send_failed: %s", str(e))
+                                            
                             if server_content and server_content.turn_complete:
                                 log.warning("gemini_turn_complete call_id=%s chunks_sent=%d bytes_sent=%d",
                                             call_id, audio_chunks_sent, audio_bytes_sent)
