@@ -130,7 +130,7 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
         )
 
         async with gemini_client.aio.live.connect(
-            model="gemini-2.5-flash-native-audio-dialog",
+            model="gemini-2.5-flash-native-audio-latest",
             config=config,
         ) as gemini_session:
             log.warning("gemini_live_connected call_id=%s", call_id)
