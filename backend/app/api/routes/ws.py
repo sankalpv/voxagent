@@ -204,11 +204,11 @@ async def call_audio_websocket(websocket: WebSocket, call_id: str):
                                 )
                             # Convert mu-law → PCM
                             pcm_8k = mulaw_to_pcm(mulaw)
-                            # Upsample 8kHz → 24kHz
-                            pcm_24k = resample_pcm(pcm_8k, 8000, 24000)
+                            # Upsample 8kHz → 16kHz (Gemini expects 16kHz input)
+                            pcm_16k = resample_pcm(pcm_8k, 8000, 16000)
                             # Send to Gemini using realtime input
                             await gemini_session.send_realtime_input(
-                                media=types.Blob(data=pcm_24k, mime_type="audio/pcm;rate=24000")
+                                media=types.Blob(data=pcm_16k, mime_type="audio/pcm;rate=16000")
                             )
                         elif data.get("event") == "start":
                             log.warning("ws_stream_start call_id=%s data=%s", call_id, json.dumps(data)[:200])
